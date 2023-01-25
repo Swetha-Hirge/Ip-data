@@ -1,26 +1,33 @@
-const express = require('express');
+var express = require('express');
+var request = require('request');
+var app = express();
 const IPData = require("ipdata").default;
-const app = express();
 require('dotenv').config();
 
 const apiKey = process.env.API_KEY;
 const ipdata = new IPData(apiKey);
 
-app.get('/location', async (req, res) => {
-    try {
-        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || req.ip;
-        const data = await ipdata.lookup(ip);
-        console.log(data);
-        res.json({
-            city: data.city,
-            region: data.region,
-            country: data.country_name,
-            postal:data.postal
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).send('Error looking up location');
-    }
+app.get('/', (req, res) => {
+    request.get('http://ipinfo.io/ip', (error, response, body) => {
+        if (!error && response.statusCode == 200) {
+            let clientIp =  body
+            console.log(body);
+            ipdata.lookup(clientIp)
+                .then((data) => {
+                    console.log(data);
+                    return res.json({
+                        city: data.city,
+                        region: data.region,
+                        country: data.country_name,
+                        postal: data.postal
+                    });
+                })
+                .catch((error) => {
+                    console.log(error);
+                    res.status(500).send('Error looking up location');
+                });
+        }
+    });
 });
 
 app.listen(3000, () => {
